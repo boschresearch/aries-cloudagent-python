@@ -173,6 +173,10 @@ class ReceiveInvitationQueryStringSchema(OpenAPISchema):
         description="Auto-accept connection (defaults to configuration)",
         required=False,
     )
+    use_public_did = fields.Boolean(
+        description="Use public DID for connection (defaults to configuration)",
+        required=False
+    )
 
 
 class AcceptInvitationQueryStringSchema(OpenAPISchema):
@@ -374,9 +378,13 @@ async def connections_receive_invitation(request: web.BaseRequest):
     try:
         invitation = ConnectionInvitation.deserialize(invitation_json)
         auto_accept = json.loads(request.query.get("auto_accept", "null"))
+        use_public_did = json.loads(request.query.get("use_public_did","null"))
         alias = request.query.get("alias")
         connection = await connection_mgr.receive_invitation(
-            invitation, auto_accept=auto_accept, alias=alias
+            invitation,
+            auto_accept=auto_accept,
+            alias=alias,
+            use_public_did=use_public_did
         )
         result = connection.serialize()
     except (ConnectionManagerError, StorageError, BaseModelError) as err:
