@@ -196,6 +196,7 @@ class ConnectionManager:
         their_role: str = None,
         auto_accept: bool = None,
         alias: str = None,
+        use_public_did: bool = None
     ) -> ConnectionRecord:
         """
         Create a new connection record to track a received invitation.
@@ -205,6 +206,7 @@ class ConnectionManager:
             their_role: The role assigned to this connection
             auto_accept: set to auto-accept the invitation (None to use config)
             alias: optional alias to set on the record
+            use_public_did: set to use the public DID for this connection
 
         Returns:
             The new `ConnectionRecord` instance
@@ -228,6 +230,18 @@ class ConnectionManager:
             else ConnectionRecord.ACCEPT_MANUAL
         )
 
+        use_public_did = (
+            True
+            if (
+                use_public_did
+                or (
+                    use_public_did is None
+                    and self.context.settings.get("use_public_did")
+                )
+            )
+            else False
+        )
+
         # Create connection record
         connection = ConnectionRecord(
             initiator=ConnectionRecord.INITIATOR_EXTERNAL,
@@ -237,6 +251,7 @@ class ConnectionManager:
             state=ConnectionRecord.STATE_INVITATION,
             accept=accept,
             alias=alias,
+            use_public_did=use_public_did
         )
 
         await connection.save(
@@ -285,6 +300,10 @@ class ConnectionManager:
         wallet: BaseWallet = await self.context.inject(BaseWallet)
         if connection.my_did:
             my_info = await wallet.get_local_did(connection.my_did)
+        elif connection.use_public_did or self.context.settings.get("use_public_did"):
+            # Use public DID for connection
+            my_info = await wallet.get_public_did()
+            connection.my_did = my_info.did
         else:
             # Create new DID for connection
             my_info = await wallet.create_local_did()
@@ -402,7 +421,10 @@ class ConnectionManager:
         elif not self.context.settings.get("public_invites"):
             raise ConnectionManagerError("Public invitations are not enabled")
         else:
-            my_info = await wallet.create_local_did()
+            if self.context.settings.get("use_public_did"):
+                my_info = await wallet.get_public_did()
+            else:
+                my_info = await wallet.create_local_did()
             connection = ConnectionRecord(
                 initiator=ConnectionRecord.INITIATOR_EXTERNAL,
                 invitation_key=connection_key,

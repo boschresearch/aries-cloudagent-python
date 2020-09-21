@@ -568,6 +568,11 @@ class ProtocolGroup(ArgumentGroup):
             using the public DID for the agent. Default: false.",
         )
         parser.add_argument(
+            "--use-public-did",
+            action="store_true",
+            help="Use public DID for connections. Default: false.",
+        )
+        parser.add_argument(
             "--timing",
             action="store_true",
             help="Include timing information in response messages.",
@@ -625,6 +630,8 @@ class ProtocolGroup(ArgumentGroup):
             settings["debug.monitor_ping"] = args.monitor_ping
         if args.public_invites:
             settings["public_invites"] = True
+        if args.use_public_did:
+            settings["use_public_did"] = True
         if args.timing:
             settings["timing.enabled"] = True
         if args.timing_log:

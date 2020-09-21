@@ -77,6 +77,7 @@ class ConnectionRecord(BaseRecord):  # lgtm[py/missing-equals]
         accept: str = None,
         invitation_mode: str = None,
         alias: str = None,
+        use_public_did: bool = None,
         **kwargs,
     ):
         """Initialize a new ConnectionRecord."""
@@ -94,6 +95,7 @@ class ConnectionRecord(BaseRecord):  # lgtm[py/missing-equals]
         self.accept = accept or self.ACCEPT_MANUAL
         self.invitation_mode = invitation_mode or self.INVITATION_MODE_ONCE
         self.alias = alias
+        self.use_public_did = use_public_did
 
     @property
     def connection_id(self) -> str:
@@ -116,6 +118,7 @@ class ConnectionRecord(BaseRecord):  # lgtm[py/missing-equals]
                 "error_msg",
                 "their_label",
                 "state",
+                "use_public_did"
             )
         }
 
