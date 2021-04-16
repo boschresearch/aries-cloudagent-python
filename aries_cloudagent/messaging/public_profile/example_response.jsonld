@@ -1,0 +1,49 @@
+{
+  "@context": [
+    "https://www.w3.org/2018/credentials/v1"
+  ],
+  "type": "VerifiablePresentation",
+  "verifiableCredential": [
+    {
+      "@context": [
+        "https://www.w3.org/2018/credentials/v1",
+        {
+          "@context": {
+            "sc": "JL7YaWqsFeVodzbW81ohj9:3:CL:8:default",
+            "age": {
+              "@id": "sc:age"
+            },
+            "date": {
+              "@id": "sc:date"
+            },
+            "degree": {
+              "@id": "sc:degree"
+            },
+            "name": {
+              "@id": "sc:name"
+            }
+          }
+        }
+      ],
+      "type": "VerifiableCredential",
+      "credentialSubject": {
+        "age": "a",
+        "date": "marbini",
+        "degree": "c",
+        "name": "d"
+      },
+      "proof": {
+        "type": "IndyCredDefProofType",
+        "proofPurpose": "assertionMethod",
+        "verificationMethod": "JL7YaWqsFeVodzbW81ohj9:3:CL:8:default"
+      }
+    }
+  ],
+  "proof": {
+    "verificationMethod": "did:key:SyZpLAxgBLYzU3wBaMhUsh",
+    "proofPurpose": "assertionMethod",
+    "created": "2021-04-14T16:06:34Z",
+    "type": "Ed25519Signature2018",
+    "jws": "eyJhbGciOiAiRWREU0EiLCAiYjY0IjogZmFsc2UsICJjcml0IjogWyJiNjQiXX0..uDe2vZnmJSuNmfCHLx5fKubmnWvCrs22F6xMzqkuUZgmlp0zSVMXC4EL3StuhYvM0bvBsBMUl6689SJkUIkrAg"
+  }
+}
