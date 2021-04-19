@@ -39,6 +39,7 @@ class CreatePublicProfileResponseSchema(OpenAPISchema):
 async def create_public_profile(request: web.BaseRequest):
     vcs = []
     context: AdminRequestContext = request["context"]
+    genesis_url = context.settings.get('ledger.genesis_url')
     body = await request.json()
     verkey = body.get("verkey")
     credential_ids = body.get("credential_ids")
@@ -51,7 +52,7 @@ async def create_public_profile(request: web.BaseRequest):
     for id in credential_ids:
         credential = await holder.get_credential(id)
         credential_json = json.loads(credential)
-        w3c_vc = build_w3c_credential(credential_json)
+        w3c_vc = build_w3c_credential(credential_json, genesis_url)
         vcs.append(w3c_vc)
     profile = {}
     vp_context = [
@@ -62,7 +63,7 @@ async def create_public_profile(request: web.BaseRequest):
     profile["verifiableCredential"] = vcs
 
     sig_options = {
-        "verificationMethod": get_network_did_prefix() + public_did_obj.did,
+        "verificationMethod": get_network_did_prefix(genesis_url) + public_did_obj.did,
         "proofPurpose": "assertionMethod"
     }
 
@@ -72,13 +73,13 @@ async def create_public_profile(request: web.BaseRequest):
 
     return web.json_response(signed_profile)
 
-def build_w3c_credential(credential):
+def build_w3c_credential(credential, genesis_url):
     vc = {}
 
     attrs = credential["attrs"]
     cred_def_id = credential["cred_def_id"]
     subject_context = {}
-    subject_context["sc"] = get_network_did_prefix() + cred_def_id
+    subject_context["sc"] = get_network_did_prefix(genesis_url) + cred_def_id
     for k,v in attrs.items():
         subject_context[k] = {
             "@id": "sc:" + k
@@ -92,13 +93,18 @@ def build_w3c_credential(credential):
     proof_type = {
         "type": "IndyCredDefProofType",
         "proofPurpose": "assertionMethod",
-        "verificationMethod": get_network_did_prefix() + cred_def_id
+        "verificationMethod": get_network_did_prefix(genesis_url) + cred_def_id
     }
     vc["proof"] = proof_type
     return vc
 
-def get_network_did_prefix():
-    return "did:sov:iil:"
+def get_network_did_prefix(genesis_url):
+    # or should we use pool name?
+    prefix = ""
+    if("indy-test.bosch-digital.de" in genesis_url):
+        prefix = "did:sov:iil:"
+
+    return prefix
 
 async def register(app: web.Application):
     """Register routes."""
