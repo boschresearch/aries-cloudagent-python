@@ -103,4 +103,4 @@ def get_network_did_prefix():
 async def register(app: web.Application):
     """Register routes."""
 
-    app.add_routes([web.post("/profile/publish", create_public_profile)])
+    app.add_routes([web.post("/profile/create", create_public_profile)])
