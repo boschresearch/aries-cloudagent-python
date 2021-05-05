@@ -1,3 +1,14 @@
+# Getting started
+
+Enable the necessary plugins on `acapy start`:
+```
+"--plugin", "aries_cloudagent.messaging.jsonld",
+"--plugin", "aries_cloudagent.messaging.public_profile",
+
+```
+
+Only the second option is necessary for the public profile itself. The first one helps to test the public profile result.
+
 # Notes
 verkey used for example: FA8WrgKepPRgrgPiwLNArrpWpbf8WSHT68WkSkcg2ScE
 
