@@ -156,6 +156,56 @@ class DIDXManager(BaseConnectionManager):
 
         return conn_rec
 
+    async def create_and_send_request_implicit(
+        self,
+        their_public_did: str,
+        my_label: str = None,
+        my_endpoint: str = None,
+        mediation_id: str = None,
+    ) -> ConnRecord:
+        """
+        Create and send a request against a public DID only (no explicit invitation).
+
+        Args:
+            their_public_did: public DID to which to request a connection
+            my_label: my label for request
+            my_endpoint: my endpoint
+            mediation_id: record id for mediation with routing_keys, service endpoint
+
+        Returns:
+            Connection record
+
+        """
+
+        conn_rec = ConnRecord(
+            my_did=None,  # create-request will fill in on local DID creation
+            their_did=their_public_did,
+            their_label=None,
+            their_role=ConnRecord.Role.RESPONDER.rfc23,
+            invitation_key=None,
+            invitation_msg_id=None,
+            state=ConnRecord.State.REQUEST.rfc23,
+            accept=None,
+            alias=my_label,
+            their_public_did=their_public_did,
+        )
+
+        request = await self.create_request(
+            conn_rec=conn_rec,
+            my_label=my_label,
+            my_endpoint=my_endpoint,
+            mediation_id=mediation_id,
+        )
+
+         # Send request
+        responder = self._session.inject(BaseResponder, required=False)
+        if responder:
+            await responder.send(request, connection_id=conn_rec.connection_id)
+
+        return conn_rec
+
+
+
     async def create_request_implicit(
         self,
         their_public_did: str,
@@ -195,6 +245,7 @@ class DIDXManager(BaseConnectionManager):
             my_endpoint=my_endpoint,
             mediation_id=mediation_id,
         )
+
 
     async def create_request(
         self,
@@ -291,10 +342,6 @@ class DIDXManager(BaseConnectionManager):
                 keylist_updates, connection_id=mediation_record.connection_id
             )
 
-         # Send request
-        responder = self._session.inject(BaseResponder, required=False)
-        if responder:
-            await responder.send(request, connection_id=conn_rec.connection_id)
         return request
 
     async def receive_request(

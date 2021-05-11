@@ -38,7 +38,7 @@ class DIDXRequestHandler(BaseHandler):
                 recipient_verkey=(
                     None
                     if context.message_receipt.recipient_did_public
-                    else context.message_receipt.recipient_verkey
+                        else context.message_receipt.recipient_verkey
                 ),
                 mediation_id=mediation_metadata.get("id"),
             )

@@ -17,6 +17,7 @@ from ....admin.request_context import AdminRequestContext
 from ....connections.models.conn_record import ConnRecord, ConnRecordSchema
 from ....messaging.models.base import BaseModelError
 from ....messaging.models.openapi import OpenAPISchema
+from ....messaging.responder import BaseResponder
 from ....messaging.valid import ENDPOINT, INDY_DID, UUIDFour, UUID4
 from ....storage.error import StorageError, StorageNotFoundError
 from ....wallet.error import WalletError
@@ -286,6 +287,47 @@ async def didx_accept_request(request: web.BaseRequest):
     await outbound_handler(response, connection_id=conn_rec.connection_id)
     return web.json_response(result)
 
+@docs(
+    tags=["did-exchange"],
+    summary="Create and send request against public DID's implicit invitation",
+)
+@querystring_schema(DIDXCreateRequestImplicitQueryStringSchema())
+@response_schema(ConnRecordSchema(), 200, description="")
+async def didx_send_request_implicit(request: web.BaseRequest):
+    """
+    Request handler for creating and sending a request based on a public DID (implicit invitation).
+
+    Args:
+        request: aiohttp request object
+
+    Returns:
+        The resulting connection record details
+
+    """
+    context: AdminRequestContext = request["context"]
+    session = await context.session()
+
+    their_public_did = request.query.get("their_public_did")
+    my_label = request.query.get("my_label") or None
+    my_endpoint = request.query.get("my_endpoint") or None
+    mediation_id = request.query.get("mediation_id") or None
+
+    didx_mgr = DIDXManager(session)
+    try:
+        conn_rec = await didx_mgr.create_and_send_request_implicit(
+            their_public_did=their_public_did,
+            my_label=my_label,
+            my_endpoint=my_endpoint,
+            mediation_id=mediation_id,
+        )
+        result = conn_rec.serialize()
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, WalletError, DIDXManagerError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    return web.json_response(result)
+
 
 async def register(app: web.Application):
     """Register routes."""
@@ -299,6 +341,7 @@ async def register(app: web.Application):
             web.post("/didexchange/create-request", didx_create_request_implicit),
             web.post("/didexchange/receive-request", didx_receive_request_implicit),
             web.post("/didexchange/{conn_id}/accept-request", didx_accept_request),
+            web.post("/didexchange/send-request", didx_send_request_implicit),
         ]
     )
 
