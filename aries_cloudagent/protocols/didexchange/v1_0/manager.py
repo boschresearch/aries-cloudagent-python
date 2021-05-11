@@ -290,6 +290,11 @@ class DIDXManager(BaseConnectionManager):
             await responder.send(
                 keylist_updates, connection_id=mediation_record.connection_id
             )
+
+         # Send request
+        responder = self._session.inject(BaseResponder, required=False)
+        if responder:
+            await responder.send(request, connection_id=conn_rec.connection_id)
         return request
 
     async def receive_request(
