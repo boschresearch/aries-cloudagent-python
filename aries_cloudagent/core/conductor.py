@@ -48,6 +48,7 @@ from ..utils.task_queue import CompletedTask, TaskQueue
 from ..vc.ld_proofs.document_loader import DocumentLoader
 from ..wallet.did_info import DIDInfo
 from .dispatcher import Dispatcher
+from ..opa.base import Opa
 
 LOGGER = logging.getLogger(__name__)
 
@@ -158,6 +159,13 @@ class Conductor:
                 LOGGER.exception("Unable to register admin server")
                 raise
 
+        # Open Policy Agent
+        try:
+            self.opa = Opa(context)
+        except Exception:
+            LOGGER.exception("Unable to register open policy agent")
+            raise
+
         # Fetch stats collector, if any
         collector = context.inject(Collector, required=False)
         if collector:
@@ -207,8 +215,7 @@ class Conductor:
             # This allows webhooks to be called when a connection is marked active,
             # for example
             responder = AdminResponder(
-                self.root_profile,
-                self.admin_server.outbound_message_router,
+                self.root_profile, self.admin_server.outbound_message_router,
             )
             context.injector.bind_instance(BaseResponder, responder)
 
@@ -369,10 +376,7 @@ class Conductor:
         await shutdown.complete(timeout)
 
     def inbound_message_router(
-        self,
-        profile: Profile,
-        message: InboundMessage,
-        can_respond: bool = False,
+        self, profile: Profile, message: InboundMessage, can_respond: bool = False,
     ):
         """
         Route inbound messages.
@@ -528,9 +532,7 @@ class Conductor:
             return self._queue_internal(profile, outbound)
 
     async def _queue_external(
-        self,
-        profile: Profile,
-        outbound: OutboundMessage,
+        self, profile: Profile, outbound: OutboundMessage,
     ) -> OutboundSendStatus:
         """Save the message to an external outbound queue."""
         async with self.outbound_queue:
