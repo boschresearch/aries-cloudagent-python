@@ -1,5 +1,6 @@
-from unittest import TestCase as UnitTestCase
+from asynctest import mock as async_mock, TestCase as AsyncTestCase
 
+from ......core.in_memory import InMemoryProfile
 from ......indy.sdk.models.pres_preview import (
     IndyPresAttrSpec,
     IndyPresPredSpec,
@@ -12,6 +13,7 @@ from ...message_types import ATTACHMENT_FORMAT, PRES_20_PROPOSAL
 from ...messages.pres_format import V20PresFormat
 from ...messages.pres_proposal import V20PresProposal
 
+from .. import pres_exchange as test_module
 from ..pres_exchange import V20PresExRecord
 
 S_ID = "NcYxiDXkpYi6ov5FcYDi1e:2:vidya:1.0"
@@ -70,45 +72,8 @@ class BasexRecordImplSchema(BaseExchangeSchema):
         model_class = BasexRecordImpl
 
 
-class TestRecord(UnitTestCase):
-    def test_record(self):
-        record = V20PresExRecord(
-            pres_ex_id="pxid",
-            thread_id="thid",
-            connection_id="conn_id",
-            initiator="init",
-            role="role",
-            state="state",
-            pres_proposal={"pres": "prop"},
-            pres_request={"pres": "req"},
-            pres={"pres": "pres"},
-            verified="false",
-            auto_present=True,
-            error_msg="error",
-        )
-
-        assert record.pres_ex_id == "pxid"
-
-        assert record.record_value == {
-            "connection_id": "conn_id",
-            "initiator": "init",
-            "role": "role",
-            "state": "state",
-            "pres_proposal": {"pres": "prop"},
-            "pres_request": {"pres": "req"},
-            "pres": {"pres": "pres"},
-            "verified": "false",
-            "auto_present": True,
-            "error_msg": "error",
-            "trace": False,
-        }
-
-        bx_record = BasexRecordImpl()
-        assert record != bx_record
-
-    def test_serde(self):
-        """Test de/serialization."""
-
+class TestRecord(AsyncTestCase):
+    async def test_record(self):
         pres_proposal = V20PresProposal(
             comment="Hello World",
             formats=[
@@ -123,24 +88,50 @@ class TestRecord(UnitTestCase):
                 AttachDecorator.data_base64(INDY_PROOF_REQ, ident="indy")
             ],
         )
-        for proposal_arg in [pres_proposal, pres_proposal.serialize()]:
-            px_rec = V20PresExRecord(
-                pres_ex_id="dummy",
-                connection_id="0000...",
-                thread_id="dummy-thid",
-                initiator=V20PresExRecord.INITIATOR_SELF,
-                role=V20PresExRecord.ROLE_PROVER,
-                state=V20PresExRecord.STATE_PROPOSAL_SENT,
-                pres_proposal=proposal_arg,
-                pres_request=None,
-                pres=None,
-                verified=None,
-                auto_present=True,
-                error_msg=None,
-                trace=False,
-            )
+        record = V20PresExRecord(
+            pres_ex_id="pxid",
+            thread_id="thid",
+            connection_id="conn_id",
+            initiator="init",
+            role="role",
+            state="state",
+            verified="false",
+            auto_present=True,
+            error_msg="error",
+        )
+        record.pres_proposal = pres_proposal  # cover setter
 
-            assert type(px_rec.pres_proposal) == dict
-            ser = px_rec.serialize()
-            deser = V20PresExRecord.deserialize(ser)
-            assert type(deser.pres_proposal) == dict
+        assert record.pres_ex_id == "pxid"
+
+        assert record.record_value == {
+            "connection_id": "conn_id",
+            "initiator": "init",
+            "role": "role",
+            "state": "state",
+            "pres_proposal": pres_proposal.serialize(),
+            "verified": "false",
+            "auto_present": True,
+            "error_msg": "error",
+            "trace": False,
+        }
+
+        bx_record = BasexRecordImpl()
+        assert record != bx_record
+
+    async def test_save_error_state(self):
+        session = InMemoryProfile.test_session()
+        record = V20PresExRecord(state=None)
+        assert record._last_state is None
+        await record.save_error_state(session)  # cover short circuit
+
+        record.state = V20PresExRecord.STATE_PROPOSAL_RECEIVED
+        await record.save(session)
+
+        with async_mock.patch.object(
+            record, "save", async_mock.CoroutineMock()
+        ) as mock_save, async_mock.patch.object(
+            test_module.LOGGER, "exception", async_mock.MagicMock()
+        ) as mock_log_exc:
+            mock_save.side_effect = test_module.StorageError()
+            await record.save_error_state(session, reason="testing")
+            mock_log_exc.assert_called_once()
