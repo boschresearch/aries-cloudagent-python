@@ -198,7 +198,7 @@ class Opa:
                                     indy_proof_request["nonce"]
                                 ),
                             )
-                            await responder.send(
+                            await responder.send_reply(
                                 presentation_message, connection_id=connection_id
                             )
                         except (
@@ -212,7 +212,8 @@ class Opa:
                             if presentation_exchange_record:
                                 async with self._context.session() as session:
                                     await presentation_exchange_record.save_error_state(
-                                        session, reason=err.roll_up,  # us: be specific
+                                        session,
+                                        reason=err.roll_up,  # us: be specific
                                     )
 
                                 # await responder.send_reply(
