@@ -273,6 +273,7 @@ class AdminServer(BaseAdminServer):
                     "/api/docs/swagger.json",
                     "/favicon.ico",
                     "/ws",  # ws handler checks authentication
+                    "/.well-known/did.json",
                 ]
                 or path.startswith("/static/swagger/")
             )
