@@ -1,4 +1,9 @@
 from pydid import DIDDocument
+from pydid.verification_method import (
+    Bls1238G2Key2020,
+    Ed25519VerificationKey2018,
+)
+
 from enum import Enum
 from ..core.profile import ProfileSession
 from ..storage.base import (
@@ -8,6 +13,12 @@ from ..storage.base import (
 )
 
 RECORD_TYPE_DID_DOC = "did_doc"
+
+
+class VerificationMethod(Enum):
+
+    BLS12381G2 = Bls1238G2Key2020
+    ED25519 = Ed25519VerificationKey2018
 
 
 async def retrieve_did_document(session: ProfileSession) -> DIDDocument:

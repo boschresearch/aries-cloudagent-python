@@ -7,7 +7,6 @@ from aiohttp import web
 from aiohttp_apispec import (
     docs,
     match_info_schema,
-    # querystring_schema,
     request_schema,
     response_schema,
 )
@@ -15,6 +14,7 @@ from aiohttp_apispec import (
 from marshmallow import fields, validate
 from ..admin.request_context import AdminRequestContext
 from ..messaging.models.openapi import OpenAPISchema
+
 from pydid.common import DID_PATTERN
 from .base import DIDWeb
 
@@ -53,8 +53,8 @@ class DIDDocOptionsSchema(OpenAPISchema):
             did=fields.Str(description="did", required=False),
             verification_relationships=fields.List(
                 fields.Str(description="verification relationships", required=False),
-                description="List of verification relationships"
-            )
+                description="List of verification relationships",
+            ),
         ),
         required=False,
         description="List of verification methods",
@@ -62,7 +62,8 @@ class DIDDocOptionsSchema(OpenAPISchema):
 
     services = fields.List(
         fields.Dict(description="service block", required=False),
-        description="List of service blocks", required=False
+        description="List of service blocks",
+        required=False,
     )
 
 
@@ -97,14 +98,7 @@ async def did_document(request: web.BaseRequest):
     context: AdminRequestContext = request["context"]
     session = await context.session()
     did_web = DIDWeb(session)
-    # did_web = session.inject(DIDWeb)
     did_document = await did_web.retrieve()
-    # except DIDNotFound as err:
-    #     raise web.HTTPNotFound(reason=err.roll_up) from err
-    # except DIDMethodNotSupported as err:
-    #     raise web.HTTPNotImplemented(reason=err.roll_up) from err
-    # except ResolverError as err:
-    #     raise web.HTTPInternalServerError(reason=err.roll_up) from err
     return web.json_response(did_document)
 
 
@@ -118,12 +112,6 @@ async def read_did_document(request: web.BaseRequest):
     did_web = DIDWeb(session)
 
     did_document = await did_web.retrieve()
-    # except DIDNotFound as err:
-    #     raise web.HTTPNotFound(reason=err.roll_up) from err
-    # except DIDMethodNotSupported as err:
-    #     raise web.HTTPNotImplemented(reason=err.roll_up) from err
-    # except ResolverError as err:
-    #     raise web.HTTPInternalServerError(reason=err.roll_up) from err
     if not did_document:
         return web.HTTPNotFound()
     else:
@@ -138,14 +126,7 @@ async def create_did_document(request: web.BaseRequest):
     context: AdminRequestContext = request["context"]
     session = await context.session()
     did_web = DIDWeb(session)
-    # did_web = session.inject(DIDWeb)
     did_document = await did_web.create()
-    # except DIDNotFound as err:
-    #     raise web.HTTPNotFound(reason=err.roll_up) from err
-    # except DIDMethodNotSupported as err:
-    #     raise web.HTTPNotImplemented(reason=err.roll_up) from err
-    # except ResolverError as err:
-    #     raise web.HTTPInternalServerError(reason=err.roll_up) from err
     return web.json_response(did_document)
 
 
@@ -172,7 +153,9 @@ async def register(app: web.Application):
             web.get("/.well-known/did.json", did_document, allow_head=False),
             web.get("/didweb/read", read_did_document, allow_head=False),
             web.post("/didweb/create-raw", create_did_document),
-            web.post("/didweb/create-from-wallet/{did}", create_did_document_from_wallet)
+            web.post(
+                "/didweb/create-from-wallet/{did}", create_did_document_from_wallet
+            ),
         ]
     )
 
@@ -189,7 +172,7 @@ def post_process_routes(app: web.Application):
             "description": "did web interface.",
             "externalDocs": {
                 "description": "Specification",
-                "url": "https://w3c-ccg.github.io/did-method-web"
+                "url": "https://w3c-ccg.github.io/did-method-web",
             },
         }
     )

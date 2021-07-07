@@ -2,14 +2,13 @@ import logging
 
 from pydid import DID, DIDDocument, DIDDocumentBuilder
 
-from pydid.verification_method import (
-    Ed25519VerificationKey2018,
-    VerificationMethod,
-)
-
 from ..wallet.base import BaseWallet
 from ..core.profile import ProfileSession
-from .util import retrieve_did_document, save_did_document
+from .util import (
+    retrieve_did_document,
+    save_did_document,
+    VerificationMethod,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -46,7 +45,9 @@ class DIDWeb:
         did_document = DIDDocument
         builder = DIDDocumentBuilder(did)
         vmethod = builder.verification_method.add(
-            Ed25519VerificationKey2018, ident="key-1", public_key_base58=recipient_key
+            VerificationMethod[public_did_obj.key_type.name].value,
+            ident="key-1",
+            public_key_base58=recipient_key,
         )
         builder.authentication.reference(vmethod.id)
         builder.assertion_method.reference(vmethod.id)
@@ -64,14 +65,11 @@ class DIDWeb:
                     did = verification_method["did"]
                     did_info = await wallet.get_local_did(did)
                     key_type = did_info.key_type
-                    suite = VerificationSuite(
-                        VerificationMethod[key_type.name].value, "publicKeyBase58"
-                    )
                     vmethod = builder.verification_method.add(
+                        VerificationMethod[key_type.name].value,
                         # +2 since there's already the key related to the public DID
                         ident=f"key-{idx+2}",
-                        suite=suite,
-                        material=did_info.verkey,
+                        public_key_base58=did_info.verkey,
                     )
                     if "verification_relationships" in verification_method:
                         vrelations = verification_method["verification_relationships"]
@@ -79,8 +77,13 @@ class DIDWeb:
                             getattr(builder, vrelation).reference(vmethod.id)
 
             if "services" in extras:
-                # TODO: Implement adding custom services
-                None
+
+                services = extras["services"]
+                for service in services:
+                    builder.service.add(
+                        type_=service["type"],
+                        service_endpoint=service["service_endpoint"],
+                    )
 
         did_document = builder.build()
 
